@@ -1,0 +1,13 @@
+# Dev is written and run on a POSIX toolchain but developed on several machines.
+# Pin text to LF so a Windows checkout does not rewrite the contract, the scripts
+# or the browser's canonical JSON and change what the tests hash.
+
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

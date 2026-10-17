@@ -1,0 +1,21 @@
+{
+  "name": "dev-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deploy, schema read-back, live end-to-end run and independent verification for the Dev intelligent contract.",
+  "scripts": {
+    "deploy": "node scripts/deploy.mjs",
+    "schema": "node scripts/schema.mjs",
+    "live": "node scripts/live.mjs",
+    "verify": "node scripts/verify.mjs",
+    "test": "pytest",
+    "lint": "genvm-lint lint contracts/dev.py"
+  },
+  "dependencies": {
+    "genlayer-js": "1.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

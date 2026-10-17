@@ -1,0 +1,82 @@
+{
+  "address": "0x605c579967C64B9b086B0Cf26ABb154Bc472f625",
+  "chainId": 61999,
+  "network": "studionet",
+  "specifications": {
+    "main": {
+      "specification_id": "S3",
+      "criteria_digest": "977db16330fa8fc96277dd19b0a68dd7243e4830d87a236b8fceaf705c773601",
+      "requirements": [
+        [
+          "HOOK-001",
+          "BLOCKING"
+        ],
+        [
+          "HOOK-002",
+          "MAJOR"
+        ],
+        [
+          "HOOK-003",
+          "MAJOR"
+        ],
+        [
+          "SEC-001",
+          "BLOCKING"
+        ]
+      ],
+      "transactions": {
+        "register": "0x34cba947f1a4af4e60408cede43b4daf33ff28099028304e0c382b3a7d643df2",
+        "freeze": "0x034aa9ec3f4ab4b44a083bb0b9220a9ee891f6024d4757ee0dc1fde436cb1327"
+      }
+    },
+    "unsettleable": {
+      "specification_id": "S5",
+      "criteria_digest": "e9257af82c0b8360294fb1c0aa792c761db33fc4c6eb27f0d9f926fdb003ab74",
+      "requirements": [
+        [
+          "HOOK-001",
+          "BLOCKING"
+        ],
+        [
+          "SCALE-001",
+          "MAJOR"
+        ]
+      ],
+      "transactions": {
+        "register": "0xde75c06fb0309be8d588568fcd8655731a2f6b79c837fb6161e29e4742d8e20b",
+        "freeze": "0xfe82fd66cc0357c7394abafbfe6290f9c1cbf5668f85b5e823389624937aef16"
+      }
+    }
+  },
+  "assessments": [
+    {
+      "label": "preserving rewrite",
+      "verdict": "COMPATIBLE",
+      "want": "COMPATIBLE",
+      "match": true,
+      "assessment_id": "A11"
+    },
+    {
+      "label": "dropped requirement",
+      "verdict": "BREAKING_CHANGE",
+      "want": "BREAKING_CHANGE",
+      "match": true,
+      "assessment_id": "A12"
+    },
+    {
+      "label": "poisoned rewrite",
+      "verdict": "BREAKING_CHANGE",
+      "want": "BREAKING_CHANGE",
+      "match": true,
+      "assessment_id": "A13"
+    },
+    {
+      "label": "unsettleable requirement",
+      "verdict": "INCONCLUSIVE",
+      "want": "INCONCLUSIVE",
+      "match": true,
+      "assessment_id": "A14"
+    }
+  ],
+  "ranAt": "2026-10-17T15:19:34.602Z"
+}

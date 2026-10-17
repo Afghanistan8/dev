@@ -1,0 +1,241 @@
+@import "tailwindcss";
+
+/* Dev is a record, not a dashboard. The page is near-black with a warm cast,
+   the type is bone on it, and structure is carried by hairlines and space
+   rather than by cards and shadows. One accent does the work of linking; the
+   three verdict colours are the only saturated things on the page, because a
+   verdict is the only thing on the page worth a colour. */
+
+@theme {
+  --color-ink-900: #0a0908;
+  --color-ink-850: #0e0c0a;
+  --color-ink-800: #13100d;
+  --color-ink-700: #1b1714;
+  --color-ink-600: #262118;
+  --color-rule: #2a251f;
+  --color-rule-bright: #3d362d;
+
+  --color-bone: #ece6d9;
+  --color-bone-dim: #b9b1a1;
+  --color-bone-faint: #8a8373;
+  --color-bone-ghost: #5d574c;
+
+  --color-seal: #4f8f84;
+  --color-seal-dim: #35635b;
+  --color-ochre: #b08b3f;
+  --color-compatible: #7fa88b;
+  --color-breaking: #b05345;
+  --color-doubt: #8a8373;
+
+  --font-text: ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype",
+    "Times New Roman", serif;
+  --font-hand: ui-sans-serif, "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas,
+    monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-ink-900);
+  color: var(--color-bone);
+}
+
+body {
+  font-family: var(--font-text);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* A barely-there grain, so the black reads as paper stock rather than as a
+     switched-off screen. */
+  background-image:
+    radial-gradient(
+      ellipse 90rem 40rem at 50% -10rem,
+      rgba(79, 143, 132, 0.07),
+      transparent 70%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(236, 230, 217, 0.012) 0px,
+      rgba(236, 230, 217, 0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--color-seal-dim);
+  color: var(--color-bone);
+}
+
+:focus-visible {
+  outline: 1px solid var(--color-seal);
+  outline-offset: 3px;
+}
+
+/* --- type ------------------------------------------------------------- */
+
+.display {
+  font-family: var(--font-text);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+  text-wrap: balance;
+}
+
+.lede {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--color-bone-dim);
+  text-wrap: pretty;
+}
+
+/* The small-caps label that sits above a block. Every section on every page is
+   introduced this way, which is what holds the pages together. */
+.marginal {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-bone-ghost);
+}
+
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+
+.ruleid {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--color-bone-ghost);
+}
+
+/* --- structure -------------------------------------------------------- */
+
+.measure {
+  max-width: 34rem;
+}
+
+.hairline {
+  border-top: 1px solid var(--color-rule);
+}
+
+/* A labelled hairline: the rule runs through the label rather than round it,
+   the way a ruled form does. */
+.hairline-label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.hairline-label::after {
+  content: "";
+  border-top: 1px solid var(--color-rule);
+}
+
+.sheet {
+  background: linear-gradient(180deg, rgba(236, 230, 217, 0.025), transparent 12rem);
+  border: 1px solid var(--color-rule);
+}
+
+.inset {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-rule);
+}
+
+/* --- controls --------------------------------------------------------- */
+
+.field {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--color-rule);
+  border-radius: 2px;
+  padding: 0.5rem 0.625rem;
+  font-family: var(--font-hand);
+  font-size: 0.875rem;
+  color: var(--color-bone);
+}
+
+.field::placeholder {
+  color: var(--color-bone-ghost);
+}
+
+.field:focus {
+  border-color: var(--color-seal-dim);
+  outline: none;
+  box-shadow: 0 0 0 1px var(--color-seal-dim);
+}
+
+.field[aria-invalid="true"] {
+  border-color: var(--color-breaking);
+}
+
+.monoarea {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  min-height: 12rem;
+  resize: vertical;
+}
+
+.press {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-rule-bright);
+  border-radius: 2px;
+  color: var(--color-bone);
+  background: transparent;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease,
+    background-color 120ms ease;
+  cursor: pointer;
+}
+
+.press:hover:not(:disabled) {
+  border-color: var(--color-seal);
+  color: var(--color-seal);
+}
+
+.press:disabled {
+  color: var(--color-bone-ghost);
+  border-color: var(--color-rule);
+  cursor: not-allowed;
+}
+
+.press-filled {
+  background: var(--color-seal-dim);
+  border-color: var(--color-seal-dim);
+  color: var(--color-bone);
+}
+
+.press-filled:hover:not(:disabled) {
+  background: var(--color-seal);
+  border-color: var(--color-seal);
+  color: var(--color-ink-900);
+}
+
+.link {
+  color: var(--color-bone);
+  text-decoration: underline;
+  text-decoration-color: var(--color-seal-dim);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.link:hover {
+  text-decoration-color: var(--color-seal);
+  color: var(--color-seal);
+}

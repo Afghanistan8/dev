@@ -21,20 +21,24 @@ import {
 import { CHAIN_ID, NETWORK_NAME, RPC_URL, chain, walletChainId } from "@/lib/chain";
 import { describeRefusal, walletClient, type WalletSession } from "@/lib/dev";
 import {
-  injectedProviders,
-  isEip1193Provider,
+  announcedWalletCandidate,
+  legacyWalletCandidates,
+  mergeWalletCandidates,
   type Eip1193Provider,
+  type WalletCandidate,
 } from "@/lib/wallet-provider";
 
 type WalletState = {
   address: `0x${string}` | null;
   session: WalletSession | null;
   hasWallet: boolean;
+  wallets: WalletCandidate[];
   walletChainId: number | null;
   wrongChain: boolean;
   busy: boolean;
   error: string;
-  connect: () => Promise<void>;
+  discoverWallets: () => WalletCandidate[];
+  connect: (chosen?: Eip1193Provider) => Promise<void>;
   switchChain: () => Promise<void>;
   disconnect: () => void;
 };
@@ -44,15 +48,15 @@ const WalletContext = createContext<WalletState | null>(null);
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<`0x${string}` | null>(null);
   const [provider, setProvider] = useState<Eip1193Provider | null>(null);
+  const [wallets, setWallets] = useState<WalletCandidate[]>([]);
   const [walletId, setWalletId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const findWallet = useCallback((): Eip1193Provider | null => {
-    if (typeof window === "undefined") return null;
-    const found = injectedProviders(window as { ethereum?: unknown });
-    const selected = found[0] ?? null;
-    if (selected) setProvider((current) => current && found.includes(current) ? current : selected);
-    return selected;
+  const discoverWallets = useCallback((): WalletCandidate[] => {
+    if (typeof window === "undefined") return [];
+    const found = legacyWalletCandidates(window as { ethereum?: unknown });
+    setWallets((current) => mergeWalletCandidates(current, found));
+    return found;
   }, []);
 
   const refreshChain = useCallback(async () => {
@@ -60,23 +64,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [provider]);
 
   useEffect(() => {
-    findWallet();
+    discoverWallets();
     if (typeof window === "undefined") return;
     const announce = (event: Event) => {
-      const candidate = (event as CustomEvent<{ provider?: unknown }>).detail?.provider;
-      if (isEip1193Provider(candidate)) setProvider((current) => current ?? candidate);
+      const candidate = announcedWalletCandidate((event as CustomEvent<unknown>).detail);
+      if (candidate) setWallets((current) => mergeWalletCandidates(current, [candidate]));
     };
-    const injected = () => findWallet();
+    const injected = () => discoverWallets();
     window.addEventListener("eip6963:announceProvider", announce);
     window.addEventListener("ethereum#initialized", injected, { once: true });
     window.dispatchEvent(new Event("eip6963:requestProvider"));
-    const retry = window.setTimeout(findWallet, 250);
+    const retry = window.setTimeout(discoverWallets, 250);
     return () => {
       window.removeEventListener("eip6963:announceProvider", announce);
       window.removeEventListener("ethereum#initialized", injected);
       window.clearTimeout(retry);
     };
-  }, [findWallet]);
+  }, [discoverWallets]);
 
   useEffect(() => {
     if (!provider) return;
@@ -95,13 +99,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     };
   }, [provider, refreshChain]);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (chosen?: Eip1193Provider) => {
     setError("");
-    const selected = provider ?? findWallet();
+    const discovered = discoverWallets();
+    const selected = chosen ?? provider ?? (wallets.length === 1
+      ? wallets[0]?.provider ?? null
+      : discovered.length === 1 ? discovered[0]?.provider ?? null : null);
     if (!selected) {
-      setError("No EIP-1193 wallet was detected. Open or unlock your wallet, then try again.");
+      setError(
+        wallets.length + discovered.length > 1
+          ? "Choose the wallet you want to connect."
+          : "No EIP-1193 wallet was detected. Open or unlock your wallet, then try again.",
+      );
       return;
     }
+    setProvider(selected);
     setBusy(true);
     try {
       const accounts = (await selected.request({ method: "eth_requestAccounts" })) as string[];
@@ -114,7 +126,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } finally {
       setBusy(false);
     }
-  }, [provider, findWallet]);
+  }, [provider, wallets, discoverWallets]);
 
   const switchChain = useCallback(async () => {
     setError("");
@@ -160,16 +172,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     () => ({
       address,
       session: address && provider ? walletClient(address, provider) : null,
-      hasWallet: provider !== null,
+      hasWallet: wallets.length > 0,
+      wallets,
       walletChainId: walletId,
       wrongChain: address !== null && walletId !== null && walletId !== CHAIN_ID,
       busy,
       error,
+      discoverWallets,
       connect,
       switchChain,
       disconnect,
     }),
-    [address, provider, walletId, busy, error, connect, switchChain, disconnect],
+    [address, provider, wallets, walletId, busy, error, discoverWallets, connect, switchChain, disconnect],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
@@ -183,23 +197,70 @@ export function useWallet(): WalletState {
 
 /** The connect control that lives in the header. */
 export function WalletBar() {
-  const { address, hasWallet, wrongChain, busy, error, connect, switchChain, disconnect } = useWallet();
+  const {
+    address,
+    hasWallet,
+    wallets,
+    wrongChain,
+    busy,
+    error,
+    discoverWallets,
+    connect,
+    switchChain,
+    disconnect,
+  } = useWallet();
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const beginConnect = () => {
+    const found = discoverWallets();
+    const choices = mergeWalletCandidates(wallets, found);
+    if (choices.length > 1) {
+      setPickerOpen(true);
+      return;
+    }
+    void connect(choices[0]?.provider);
+  };
+
+  const picker = pickerOpen && (
+    <div className="absolute right-0 top-full z-50 mt-2 w-64 border border-rule bg-ink-850 p-2 shadow-2xl" role="dialog" aria-label="Choose wallet">
+      <p className="marginal mb-2 px-2">choose wallet</p>
+      {wallets.map((wallet) => (
+        <button
+          key={wallet.id}
+          type="button"
+          className="flex w-full items-center gap-2 px-2 py-2 text-left font-hand text-sm text-bone hover:bg-ink-700"
+          onClick={() => {
+            setPickerOpen(false);
+            void connect(wallet.provider);
+          }}
+          disabled={busy}
+        >
+          {wallet.icon ? <img src={wallet.icon} alt="" className="h-5 w-5 rounded-sm" /> : <span className="h-5 w-5 border border-rule-bright" />}
+          <span>{wallet.name}</span>
+        </button>
+      ))}
+    </div>
+  );
 
   if (!hasWallet) {
     return (
-      <div className="flex items-center gap-2">
-        <button type="button" className="press" onClick={() => void connect()} disabled={busy}>
+      <div className="relative flex items-center gap-2">
+        <button type="button" className="press" onClick={beginConnect} disabled={busy}>
           {busy ? "connecting…" : "connect wallet"}
         </button>
         {error && <span className="marginal text-breaking" title={error}>wallet not detected</span>}
+        {picker}
       </div>
     );
   }
   if (!address) {
     return (
-      <button type="button" className="press" onClick={() => void connect()} disabled={busy}>
-        {busy ? "connecting…" : "connect wallet"}
-      </button>
+      <div className="relative">
+        <button type="button" className="press" onClick={beginConnect} disabled={busy}>
+          {busy ? "connecting…" : wallets.length > 1 ? "choose wallet" : "connect wallet"}
+        </button>
+        {picker}
+      </div>
     );
   }
   if (wrongChain) {

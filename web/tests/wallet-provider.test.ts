@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { injectedProviders, isEip1193Provider } from "@/lib/wallet-provider";
+import {
+  announcedWalletCandidate,
+  injectedProviders,
+  isEip1193Provider,
+  legacyWalletCandidates,
+  mergeWalletCandidates,
+} from "@/lib/wallet-provider";
 
 const provider = () => ({ request: async () => [] });
 
@@ -21,5 +27,24 @@ describe("wallet provider discovery", () => {
   it("does not mistake arbitrary page data for a wallet", () => {
     expect(injectedProviders({ ethereum: { request: "send" } })).toEqual([]);
     expect(injectedProviders({})).toEqual([]);
+  });
+
+  it("labels legacy providers and preserves the EIP-6963 wallet name", () => {
+    const keplr = { ...provider(), isKeplr: true };
+    const fallback = legacyWalletCandidates({ ethereum: keplr });
+    const announced = announcedWalletCandidate({
+      provider: keplr,
+      info: { uuid: "keplr-uuid", name: "Keplr Extension", icon: "data:image/svg+xml,test" },
+    });
+    expect(fallback[0]?.name).toBe("Keplr");
+    expect(announced).toMatchObject({ id: "keplr-uuid", name: "Keplr Extension" });
+    expect(mergeWalletCandidates(fallback, announced ? [announced] : [])).toEqual([
+      expect.objectContaining({ name: "Keplr Extension", id: "keplr-uuid" }),
+    ]);
+  });
+
+  it("rejects malformed EIP-6963 announcements", () => {
+    expect(announcedWalletCandidate({ provider: { request: "no" } })).toBeNull();
+    expect(announcedWalletCandidate(null)).toBeNull();
   });
 });

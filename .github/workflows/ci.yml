@@ -1,0 +1,106 @@
+# Dev's CI.
+#
+# Three jobs, in the order a change should be caught:
+#
+#   contract   the rules, including every refusal, against the runtime double
+#   web        the console's typecheck, its tests, and a production build
+#   records    the repository's own evidence is well formed and consistent
+#
+# The contract lint gate (`npm run lint`, `genvm-lint lint contracts/dev.py`) is
+# not here on purpose: the linter is not on the PATH of a stock runner, and
+# guessing an install command for it would be worse than leaving it to the
+# documented local step.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: run the contract suite
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pytest -q
+
+      - name: the contract is lint-shaped
+        run: |
+          if command -v genvm-lint >/dev/null 2>&1; then
+            genvm-lint lint contracts/dev.py
+          else
+            echo "genvm-lint is not on PATH here; the lint gate is documented as a local step."
+            echo "Run it before pushing: npm run lint"
+          fi
+
+  web:
+    name: console
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+
+  records:
+    name: evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: the live report is the shape the driver writes
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const report = JSON.parse(readFileSync("deploy/live-report.json", "utf8"));
+            const checks = [
+              ["an address", /^0x[0-9a-f]{40}$/i.test(report.address)],
+              ["a chain id", Number.isInteger(report.chainId)],
+              ["two specifications", !!report.specifications.main && !!report.specifications.unsettleable],
+              ["the criteria digests agree",
+                report.specifications.main.criteria_digest === "977db16330fa8fc96277dd19b0a68dd7243e4830d87a236b8fceaf705c773601"],
+              ["four assessments", report.assessments.length === 4],
+              ["every assessment matched", report.assessments.every((a) => a.match === true)],
+            ];
+            for (const [label, ok] of checks) console.log(`${ok ? "ok " : "!  "}${label}`);
+            const bad = checks.filter(([, ok]) => !ok);
+            if (bad.length) { console.error(`\n${bad.length} record check(s) failed`); process.exit(1); }
+            console.log("\nrecord is well formed and every live case matched.");
+          '
+
+      - name: the README names the contract that is deployed
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const [readme, deploy] = ["README.md", ".dev-deploy.json"].map((f) => readFileSync(f, "utf8"));
+            const record = JSON.parse(deploy);
+            const ok = readme.includes(record.address);
+            console.log(`${ok ? "ok " : "!  "}README carries the deployed address ${record.address}`);
+            if (!ok) process.exit(1);
+          '

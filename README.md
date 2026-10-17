@@ -112,10 +112,24 @@ scripts/schema.mjs        read the deployed schema back and prove no method is p
 scripts/live.mjs          the live end-to-end run, one specification per verdict
 scripts/verify.mjs        recompute every digest from the chain's own views
 scripts/canon.mjs         canonical JSON and sha256, byte-for-byte the contract's
+scripts/info.mjs          print what the deployed contract says about itself
+scripts/wallet.mjs        read the CLI's cached signing key into .env
 web/                      the console: Next.js App Router, TypeScript, read-only, no backend
 web/lib/canon.ts          the same canonical JSON, in the browser
 docs/                     PROTOCOL, ARCHITECTURE, SECURITY, THREAT_MODEL, TESTING, DEPLOYMENT, ...
 ```
+
+---
+
+## Continuous integration
+
+```yaml
+.github/workflows/ci.yml   contract tests, then the console's lint, tests and build
+```
+
+The contract lint gate (`npm run lint`) is run locally against `genvm-lint`; it is
+not in CI because the linter is not on the PATH of a stock runner, and inventing an
+install command for it would be worse than saying so.
 
 ---
 

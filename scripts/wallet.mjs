@@ -9,7 +9,7 @@
 //   node scripts/wallet.mjs                 # writes .env
 //   node scripts/wallet.mjs --print         # also prints the key
 //
-// `.env` is gitigneored. Nothing here leaves this machine.
+// `.env` is gitignored. Nothing here leaves this machine.
 
 import { createRequire } from "node:module";
 import { writeFileSync, existsSync } from "node:fs";
@@ -18,14 +18,25 @@ import { resolve } from "node:path";
 import { createAccount, generatePrivateKey } from "genlayer-js";
 import { ROOT } from "./client.mjs";
 
-const CLI = process.env.GENLAYER_CLI_DIR ||
-  "C:/Users/emman/AppData/Roaming/npm/node_modules/genlayer";
 const ACCOUNT = process.env.DEV_CLI_ACCOUNT || (process.argv.includes("--account")
   ? process.argv[process.argv.indexOf("--account") + 1]
   : "deployer");
 
+/** The CLI's own module directory, when it is installed alongside this checkout. */
+function cliDirectory() {
+  if (process.env.GENLAYER_CLI_DIR) return process.env.GENLAYER_CLI_DIR;
+  try {
+    const require = createRequire(resolve(ROOT, "package.json"));
+    return resolve(require.resolve("genlayer"), "..", "..", "..");
+  } catch {
+    return "";
+  }
+}
+
 async function fromKeychain() {
-  const require = createRequire(`${CLI}/`);
+  const directory = cliDirectory();
+  if (!directory) return null;
+  const require = createRequire(`${directory}/`);
   let keytar;
   try {
     keytar = require("keytar");

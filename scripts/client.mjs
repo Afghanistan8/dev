@@ -77,20 +77,18 @@ export function stranger() {
   return createAccount(generatePrivateKey());
 }
 
-export async function connect() {
-  const { target, fellBack, insteadOf } = await resolveTarget();
-  if (fellBack) {
-    console.log(`! ${insteadOf.name} did not answer; using ${target.name}`);
-  }
-  const signer = account();
+export async function connect({ signer = true } = {}) {
+  const { target } = await resolveTarget();
+  const signingAccount = signer ? account() : null;
   const client = createClient({
     chain: target.chain,
     endpoint: target.rpc,
-    account: signer,
+    ...(signingAccount ? { account: signingAccount } : {}),
   });
   console.log(`- ${target.name} (chain ${target.id}) at ${target.rpc}`);
-  console.log(`- signing as ${signer.address}`);
-  return { client, target, account: signer };
+  if (signingAccount) console.log(`- signing as ${signingAccount.address}`);
+  else console.log("- read-only client; no signing key loaded");
+  return { client, target, account: signingAccount };
 }
 
 // -- reading a receipt --------------------------------------------------------

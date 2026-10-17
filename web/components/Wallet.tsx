@@ -18,8 +18,13 @@ import {
   type ReactNode,
 } from "react";
 
-import { CHAIN_ID, NETWORK_NAME, RPC_URL, browserProvider, chain, walletChainId } from "@/lib/chain";
+import { CHAIN_ID, NETWORK_NAME, RPC_URL, chain, walletChainId } from "@/lib/chain";
 import { describeRefusal, walletClient, type WalletSession } from "@/lib/dev";
+import {
+  injectedProviders,
+  isEip1193Provider,
+  type Eip1193Provider,
+} from "@/lib/wallet-provider";
 
 type WalletState = {
   address: `0x${string}` | null;
@@ -38,18 +43,45 @@ const WalletContext = createContext<WalletState | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<`0x${string}` | null>(null);
+  const [provider, setProvider] = useState<Eip1193Provider | null>(null);
   const [walletId, setWalletId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const hasWallet = typeof globalThis !== "undefined" && browserProvider() !== null;
-
-  const refreshChain = useCallback(async () => {
-    setWalletId(await walletChainId());
+  const findWallet = useCallback((): Eip1193Provider | null => {
+    if (typeof window === "undefined") return null;
+    const found = injectedProviders(window as { ethereum?: unknown });
+    const selected = found[0] ?? null;
+    if (selected) setProvider((current) => current && found.includes(current) ? current : selected);
+    return selected;
   }, []);
 
+  const refreshChain = useCallback(async () => {
+    setWalletId(await walletChainId(provider));
+  }, [provider]);
+
   useEffect(() => {
-    const provider = browserProvider();
-    if (!provider?.on) return;
+    findWallet();
+    if (typeof window === "undefined") return;
+    const announce = (event: Event) => {
+      const candidate = (event as CustomEvent<{ provider?: unknown }>).detail?.provider;
+      if (isEip1193Provider(candidate)) setProvider((current) => current ?? candidate);
+    };
+    const injected = () => findWallet();
+    window.addEventListener("eip6963:announceProvider", announce);
+    window.addEventListener("ethereum#initialized", injected, { once: true });
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    const retry = window.setTimeout(findWallet, 250);
+    return () => {
+      window.removeEventListener("eip6963:announceProvider", announce);
+      window.removeEventListener("ethereum#initialized", injected);
+      window.clearTimeout(retry);
+    };
+  }, [findWallet]);
+
+  useEffect(() => {
+    if (!provider) return;
+    void refreshChain();
+    if (!provider.on) return;
     const onAccounts = (...args: never[]) => {
       const accounts = args[0] as unknown as string[];
       setAddress(accounts.length > 0 ? (accounts[0] as `0x${string}`) : null);
@@ -61,32 +93,31 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       provider.removeListener?.("accountsChanged", onAccounts);
       provider.removeListener?.("chainChanged", onChain);
     };
-  }, [refreshChain]);
+  }, [provider, refreshChain]);
 
   const connect = useCallback(async () => {
     setError("");
-    const provider = browserProvider();
-    if (!provider) {
-      setError("No wallet is installed. Dev is read-only without one.");
+    const selected = provider ?? findWallet();
+    if (!selected) {
+      setError("No EIP-1193 wallet was detected. Open or unlock your wallet, then try again.");
       return;
     }
     setBusy(true);
     try {
-      const accounts = (await provider.request({ method: "eth_requestAccounts" })) as string[];
+      const accounts = (await selected.request({ method: "eth_requestAccounts" })) as string[];
       const chosen = accounts[0];
       if (!chosen) throw new Error("the wallet returned no account");
       setAddress(chosen as `0x${string}`);
-      await refreshChain();
+      setWalletId(await walletChainId(selected));
     } catch (trouble) {
       setError(describeRefusal(trouble));
     } finally {
       setBusy(false);
     }
-  }, [refreshChain]);
+  }, [provider, findWallet]);
 
   const switchChain = useCallback(async () => {
     setError("");
-    const provider = browserProvider();
     if (!provider) return;
     setBusy(true);
     try {
@@ -118,7 +149,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } finally {
       setBusy(false);
     }
-  }, [refreshChain]);
+  }, [provider, refreshChain]);
 
   const disconnect = useCallback(() => {
     setAddress(null);
@@ -128,8 +159,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const value = useMemo<WalletState>(
     () => ({
       address,
-      session: address ? walletClient(address, browserProvider()) : null,
-      hasWallet,
+      session: address && provider ? walletClient(address, provider) : null,
+      hasWallet: provider !== null,
       walletChainId: walletId,
       wrongChain: address !== null && walletId !== null && walletId !== CHAIN_ID,
       busy,
@@ -138,7 +169,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       switchChain,
       disconnect,
     }),
-    [address, hasWallet, walletId, busy, error, connect, switchChain, disconnect],
+    [address, provider, walletId, busy, error, connect, switchChain, disconnect],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
@@ -152,10 +183,17 @@ export function useWallet(): WalletState {
 
 /** The connect control that lives in the header. */
 export function WalletBar() {
-  const { address, hasWallet, wrongChain, busy, connect, switchChain, disconnect } = useWallet();
+  const { address, hasWallet, wrongChain, busy, error, connect, switchChain, disconnect } = useWallet();
 
   if (!hasWallet) {
-    return <span className="marginal" title="Install a wallet to submit proposals">read-only · no wallet</span>;
+    return (
+      <div className="flex items-center gap-2">
+        <button type="button" className="press" onClick={() => void connect()} disabled={busy}>
+          {busy ? "connecting…" : "connect wallet"}
+        </button>
+        {error && <span className="marginal text-breaking" title={error}>wallet not detected</span>}
+      </div>
+    );
   }
   if (!address) {
     return (

@@ -1,8 +1,8 @@
 // Deploy the Dev contract and record where it landed.
 //
-//   DEV_PRIVATE_KEY=0x... npm run deploy          # studionet, chain 61999
-//   DEV_NETWORK=testnet-asimov npm run deploy      # chain 4212
-//   DEV_RPC=http://127.0.0.1:4000/api DEV_CHAIN_ID=61127 npm run deploy
+//   DEV_PRIVATE_KEY=0x... npm run deploy          # Studionet only, chain 61999
+
+import { createHash } from "node:crypto";
 
 import { connect, contractSource, deploy, writeRecord } from "./client.mjs";
 
@@ -49,6 +49,7 @@ async function main() {
     deployedAt: new Date().toISOString(),
     transaction: hash,
     runner: pin.trim(),
+    sourceSha256: createHash("sha256").update(code).digest("hex"),
     explorer: target.explorer ? `${target.explorer}/address/${address}` : "",
   });
 

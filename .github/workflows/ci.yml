@@ -28,6 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -38,6 +45,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest
           python -m pytest -q
+
+      - name: refuse non-Studio operational configuration
+        run: npm run test:network
 
       - name: the contract is lint-shaped
         run: |
@@ -77,6 +87,7 @@ jobs:
       - name: the live report is the shape the driver writes
         run: |
           node --input-type=module -e '
+            import { createHash } from "node:crypto";
             import { readFileSync } from "node:fs";
             const report = JSON.parse(readFileSync("deploy/live-report.json", "utf8"));
             const checks = [
@@ -100,7 +111,11 @@ jobs:
             import { readFileSync } from "node:fs";
             const [readme, deploy] = ["README.md", ".dev-deploy.json"].map((f) => readFileSync(f, "utf8"));
             const record = JSON.parse(deploy);
-            const ok = readme.includes(record.address);
-            console.log(`${ok ? "ok " : "!  "}README carries the deployed address ${record.address}`);
-            if (!ok) process.exit(1);
+            const checks = [
+              ["README carries the deployed address", readme.includes(record.address)],
+              ["manifest carries a source SHA", /^[0-9a-f]{64}$/.test(record.sourceSha256 || "")],
+              ["manifest source SHA matches the contract", record.sourceSha256 === createHash("sha256").update(readFileSync("contracts/dev.py")).digest("hex")],
+            ];
+            for (const [label, ok] of checks) console.log(`${ok ? "ok " : "!  "}${label}`);
+            if (checks.some(([, ok]) => !ok)) process.exit(1);
           '

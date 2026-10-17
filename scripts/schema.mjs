@@ -44,7 +44,7 @@ const FORBIDDEN = ["owner", "admin", "upgrade", "set_owner", "transfer_ownership
                    "pause", "unpause", "withdraw", "selfdestruct", "destroy"];
 
 async function main() {
-  const { client } = await connect();
+  const { client } = await connect({ signer: false });
 
   const local = await client.getContractSchemaForCode(await contractSource());
   const fromSource = methodNames(local);

@@ -7,5 +7,6 @@
   "deployedAt": "2026-10-17T14:34:35.153Z",
   "transaction": "0x1694a0393c99fb9c7469a12b5b9c6baf0dac6f2a588ccba6f69a1adcb95b2ee5",
   "runner": "# { \"Depends\": \"py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6\" }",
+  "sourceSha256": "56f05155a20987b46bb0a4a8d04d7bcd58e054cb0c9fa3784b38a35a589c8498",
   "explorer": "https://explorer-studio.genlayer.com/address/0x605c579967C64B9b086B0Cf26ABb154Bc472f625"
 }

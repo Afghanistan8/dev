@@ -74,8 +74,8 @@ const RULES = [
   {
     title: "No owner, no admin, no upgrade",
     body:
-      "There is no privileged address in the contract. Every transition of a record is visible " +
-      "in a write, a view and an event.",
+      "There is no privileged address in the contract. Every transition is visible in a write " +
+      "transaction and its resulting views.",
   },
 ];
 

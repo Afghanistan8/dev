@@ -15,7 +15,8 @@ repository.
 | Runner pin | `py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6` |
 
 These values are written by the scripts, not typed by hand: the deploy script writes
-[`.dev-deploy.json`](../.dev-deploy.json), the end-to-end run writes
+[`.dev-deploy.json`](../.dev-deploy.json), including the SHA-256 of the exact contract source it
+sent, and the end-to-end run writes
 [`live-report.json`](../deploy/live-report.json).
 
 ## The runner pin
@@ -56,11 +57,10 @@ npm run deploy
 3. deploys, then verifies the address by reading a view back, retrying a few times — a deploy is
    only reported as successful once the contract answers.
 
-Other networks are selected with `DEV_NETWORK` (`studionet`, `testnet-asimov`,
-`testnet-bradbury`, `localnet`) or pointed at explicitly with `DEV_RPC` and `DEV_CHAIN_ID`. An
-unknown chain id is refused rather than guessed, because the SDK's chain definition carries the
-consensus and fee contract addresses, and inventing one produces a client that fails *after*
-signing with "consensus main contract address not found".
+The scripts and console are locked to stable Studionet (`61999`) and its canonical RPC
+`https://studio.genlayer.com/api`. `DEV_NETWORK`, `DEV_CHAIN_ID`, `DEV_RPC`, and their
+`NEXT_PUBLIC_` counterparts are rejected when they name anything else. A Studio outage therefore
+fails plainly; the tooling never falls back to another network.
 
 ## Checking the deployed code
 

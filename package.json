@@ -10,6 +10,7 @@
     "live": "node scripts/live.mjs",
     "verify": "node scripts/verify.mjs",
     "test": "pytest",
+    "test:network": "node --test tests/test_network.mjs",
     "lint": "genvm-lint lint contracts/dev.py"
   },
   "dependencies": {

@@ -77,8 +77,8 @@ decisive would fail every round without making anything safer.
 
 ## The client
 
-`web/` is a Next.js App Router application. It is read-only in the strict sense: it holds no key,
-has no backend, and every write is *proposed* to the user's wallet, which signs it.
+`web/` is a keyless, wallet-signed Next.js App Router application. It holds no key, has no backend,
+and every write is *proposed* to the user's wallet, which signs it.
 
 - **Reads** go through `genlayer-js` against `NEXT_PUBLIC_DEV_RPC`, one `readContract` per view.
 - **Writes** build a client with the connected address and the EIP-1193 provider, so the SDK routes

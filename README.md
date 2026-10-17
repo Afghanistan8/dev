@@ -2,7 +2,7 @@
 
 **Freeze the requirement. Submit the change. Validators read both. Code records the verdict.**
 
-Dev is a GenLayer intelligent contract and a read-only console for one question about a
+Dev is a GenLayer intelligent contract and a keyless, wallet-signed console for one question about a
 specification and a change to it:
 
 > Does this change still satisfy what was frozen?
@@ -114,7 +114,7 @@ scripts/verify.mjs        recompute every digest from the chain's own views
 scripts/canon.mjs         canonical JSON and sha256, byte-for-byte the contract's
 scripts/info.mjs          print what the deployed contract says about itself
 scripts/wallet.mjs        read the CLI's cached signing key into .env
-web/                      the console: Next.js App Router, TypeScript, read-only, no backend
+web/                      the console: Next.js App Router, TypeScript, wallet-signed, no backend
 web/lib/canon.ts          the same canonical JSON, in the browser
 docs/                     PROTOCOL, ARCHITECTURE, SECURITY, THREAT_MODEL, TESTING, DEPLOYMENT, ...
 ```
@@ -156,7 +156,7 @@ install command for it would be worse than saying so.
 - **Machine-readable refusals.** Every failure wears a bracketed class
   (`[FROZEN_SPECIFICATION]`, `[CRITERIA_MISMATCH]`, `[UNAUTHORIZED]`, …) so a client can react to the
   kind of refusal and not to its prose.
-- **A read-only frontend.** The console holds no key and has no backend: every write is signed by
+- **A keyless, wallet-signed frontend.** The console holds no key and has no backend: every write is signed by
   the visitor's own wallet, and every read is a view call.
 - **No owner, no admin, no upgrade.** There is no privileged address in the contract. The deployer
   can do exactly what anybody else can, and that is asserted, not asserted-to.

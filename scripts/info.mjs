@@ -7,13 +7,12 @@
 import { connect, readRecord, short } from "./client.mjs";
 
 async function main() {
-  const { client, account } = await connect();
+  const { client } = await connect({ signer: false });
   const record = await readRecord();
   const address = process.argv[2] || record.address;
   console.log(`- reading ${address} (${record.source})`);
 
   const info = await client.readContract({
-    account,
     address,
     functionName: "get_protocol_info",
     args: [],

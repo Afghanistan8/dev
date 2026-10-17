@@ -29,16 +29,16 @@ async function main() {
     return;
   }
 
-  const { client, account } = await connect();
+  const { client } = await connect({ signer: false });
   const record = await readRecord();
   const address = record.address;
   console.log(`- verifying ${address} (${record.source})`);
 
   const view = await client.readContract({
-    account, address, functionName: "get_criteria", args: [specId],
+    address, functionName: "get_criteria", args: [specId],
   });
   const baseline = await client.readContract({
-    account, address, functionName: "get_baseline", args: [specId],
+    address, functionName: "get_baseline", args: [specId],
   });
 
   console.log(`\nspecification ${specId}  rules ${view.rules}`);
@@ -55,10 +55,10 @@ async function main() {
 
   if (assessmentId) {
     const found = await client.readContract({
-      account, address, functionName: "get_findings", args: [assessmentId],
+      address, functionName: "get_findings", args: [assessmentId],
     });
     const proposed = await client.readContract({
-      account, address, functionName: "get_proposed", args: [assessmentId],
+      address, functionName: "get_proposed", args: [assessmentId],
     });
     console.log(`\nassessment ${assessmentId}  verdict ${found.verdict}`);
     console.log(`  ${found.summary}`);
